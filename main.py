@@ -11,7 +11,7 @@ screen = pygame.display.set_mode((800, 600))
 pygame.display.set_caption("Spring Simulation with Energy Graph")
 clock = pygame.time.Clock()
 space = pymunk.Space()
-space.gravity = (0, 0)  # 중력 제거
+space.gravity = (0, -10)  # 중력 제거
 draw_options = pymunk.pygame_util.DrawOptions(screen)
 
 # Create a static anchor point for the spring
@@ -30,31 +30,40 @@ space.add(ball_body, ball_shape)
 
 # Create a spring (DampedSpring)
 spring = pymunk.DampedSpring(
-    anchor_body, 
+    anchor_body,#코드 누가 짯냐  진자 개못하네 
     ball_body, 
     (0, 0), 
     (0, 0), 
     rest_length=200, 
-    stiffness=1,  # 용수철 강성
-    damping=0     # 감쇠를 제거하여 역학적 에너지 보존
+    stiffness=10,  # 용수철 강성
+    damping=0 # 감쇠를 제거하여 역학적 에너지 보존
 )
 space.add(spring)
 
 # Function to calculate kinetic energy
 def calculate_kinetic_energy(body):
     velocity = body.velocity
-    speed_squared = velocity.x**2 + velocity.y**2
+    speed_squared =  velocity.y**2
     return 0.5 * body.mass * speed_squared
 
 # Function to calculate potential energy (spring)
 def calculate_potential_energy(spring, body):
     displacement = spring.rest_length - (body.position - spring.a.position).length
     spring_energy = 0.5 * spring.stiffness * displacement**2
-    return spring_energy  # 중력 위치 에너지 제거
+    return spring_energy 
+
+# Function to calculate potnetial energy (gravitational)
+def calculate_gravitational_potential_energy(body):
+    # height = body.position.y - anchor_body.position.y  # 기준점을 앵커 위치로
+    # height = body.position.y - 100  # 기준점을 앵커 위치로
+    height = body.position.y - 300  # 기준점을 앵커 위치로
+    gravitational_energy = body.mass * space.gravity[1] * height
+    return gravitational_energy
 
 # Energy data for graph
 kinetic_energy_data = deque(maxlen=500)
 potential_energy_data = deque(maxlen=500)
+gravitational_energy_data = deque(maxlen=500)  # 중력 에너지 데이터 추가
 total_energy_data = deque(maxlen=500)
 
 # Define the initial position of the ball to match the spring's rest length
@@ -73,7 +82,7 @@ ball_body.position = initial_position
 ball_body.velocity = (0, 0)
 
 # 시간 간격 줄이기
-time_step = 1 / 240.0  # 더 작은 시간 간격
+time_step = 1 / 480.0  # 더 작은 시간 간격
 
 while running:
     for event in pygame.event.get():
@@ -110,11 +119,13 @@ while running:
         # Calculate energies
         kinetic_energy = calculate_kinetic_energy(ball_body)
         potential_energy = calculate_potential_energy(spring, ball_body)
-        total_energy = kinetic_energy + potential_energy
+        gravitational_energy = calculate_gravitational_potential_energy(ball_body)
+        total_energy = - kinetic_energy - potential_energy + gravitational_energy
 
         # Append energy data for graph
         kinetic_energy_data.append(kinetic_energy)
         potential_energy_data.append(potential_energy)
+        gravitational_energy_data.append(gravitational_energy)
         total_energy_data.append(total_energy)
 
         # Display kinetic energy
@@ -122,13 +133,17 @@ while running:
         text = font.render(f"Kinetic Energy: {kinetic_energy * energy_scale:.2f} J", True, (0, 0, 0))
         screen.blit(text, (10, 10))
 
-        # Display potential energy
-        text = font.render(f"Potential Energy: {potential_energy * energy_scale:.2f} J", True, (0, 0, 0))
+        # Display potential energy (spring)
+        text = font.render(f"Spring PE: {potential_energy * energy_scale:.2f} J", True, (0, 0, 0))
         screen.blit(text, (10, 50))
+
+        # Display gravitational potential energy
+        text = font.render(f"Gravity PE: {gravitational_energy * energy_scale:.2f} J", True, (0, 0, 0))
+        screen.blit(text, (10, 90))
 
         # Display total energy
         text = font.render(f"Total Energy: {total_energy * energy_scale:.2f} J", True, (0, 0, 0))
-        screen.blit(text, (10, 90))
+        screen.blit(text, (10, 130))
 
         # Update display
         pygame.display.flip()
@@ -137,7 +152,8 @@ while running:
 # Plot energy graph
 plt.figure(figsize=(10, 6))
 plt.plot([e * energy_scale for e in kinetic_energy_data], label="Kinetic Energy")
-plt.plot([e * energy_scale for e in potential_energy_data], label="Potential Energy")
+plt.plot([e * energy_scale for e in potential_energy_data], label="Spring PE")
+plt.plot([e * energy_scale for e in gravitational_energy_data], label="Gravity PE")
 plt.plot([e * energy_scale for e in total_energy_data], label="Total Energy")
 plt.xlabel("Time Steps")
 plt.ylabel("Energy (Scaled, J)")
