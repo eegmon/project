@@ -48,7 +48,7 @@ spring = pymunk.DampedSpring(
     (0, 0), (0, 0),  # anchor point is at the top of the screen
     rest_length=200,  # 용수철의 자연 길이
     stiffness=50,  # 용수철 강성
-    damping=0  # 감쇠 계수
+    damping=0.3  # 감쇠 계수
 )
 space.add(spring)
 
@@ -102,6 +102,10 @@ while running:
                 slow_motion = 0.2
             elif event.key == K_4:  # 4번키: 10배 느리게
                 slow_motion = 0.1
+            elif event.key == K_UP:
+                spring.damping += 0.1  # Increase damping
+            elif event.key == K_DOWN:
+                spring.damping = max(0, spring.damping - 0.1)
 
     if dragging:
         mouse_pos = pygame.mouse.get_pos()
@@ -146,14 +150,14 @@ while running:
                 (800, ball_body.max_y),
                 2
             )
-            # Draw a horizontal line at the equilibrium position (rest length from anchor)
-            equilibrium_y = anchor_body.position.y + spring.rest_length
-            pygame.draw.line(
-                screen, (0, 200, 0),
-                (0, equilibrium_y),
-                (800, equilibrium_y),
-                2
-            )
+            # # Draw a horizontal line at the equilibrium position (rest length from anchor)
+            # equilibrium_y = anchor_body.position.y + spring.rest_length
+            # pygame.draw.line(
+            #     screen, (0, 200, 0),
+            #     (0, equilibrium_y),
+            #     (800, equilibrium_y),
+            #     2
+            # )
             # Draw a moving vertical line at the current x position of the ball
             pygame.draw.line(
                 screen, (128, 0, 128),
@@ -217,6 +221,9 @@ while running:
         # Display total energy
         text = font.render(f"Total Energy: {total_energy * energy_scale:.2f} J", True, (0, 0, 0))
         screen.blit(text, (10, 130))
+        # Display demping value
+        text = font.render(f"Damping: {spring.damping:.2f}", True, (0, 0, 0))
+        screen.blit(text, (10, 170))
 
         # font = pygame.font.Font(None, 28)   
         # 1. 평형점과 최고점(최소 y) 사이 거리
